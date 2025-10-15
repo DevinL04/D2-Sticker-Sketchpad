@@ -1,5 +1,16 @@
 .icon {
-  width: 64px;
+  width: 24px;
   vertical-align: top;
-  border: 1px solid salmon;
+  border: 1px solid rgb(0, 0, 0);
+  border-width: 5px;
+}
+
+.title {}
+
+canvas {
+  width: 256px;
+  height: 256px;
+  border: 2px solid black;
+  border-radius: 20px;
+  display: block;
 }
