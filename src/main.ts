@@ -10,43 +10,52 @@ document.body.innerHTML = `
 `;
 
 const canvas = document.getElementById("myCanvas") as HTMLCanvasElement;
-const ctx = canvas.getContext("2d")!; // getting 2d drawing context for the canvas
 // ctx is just shorthand naming convention
+const ctx = canvas.getContext("2d")!; // getting 2d drawing context for the canvas
 const clearBtn = document.getElementById("clearBtn") as HTMLButtonElement;
 
+type Point = { x: number; y: number }; //list of points
+type Stroke = Point[]; // one continous line
+const strokes: Stroke[] = []; //array of strokes, holds all finished strokes
+let currentStroke: Stroke = []; // stores points of the current stroke being drawn
+
 let isDrawing = false;
-let lastX = 0;
-let lastY = 0;
 
-function drawLine(fromX: number, fromY: number, toX: number, toY: number) {
-  //ctx is the drawing tools for canvas
-  ctx.beginPath(); //starts a new path
-  ctx.moveTo(fromX, fromY); //moves the pen to a new position w/ out drawing
-  ctx.lineTo(toX, toY); // draws a line from the current point to (x, y)
-  ctx.strokeStyle = "black";
-  ctx.lineWidth = 2;
-  ctx.lineCap = "round";
-  ctx.stroke(); //draws the path
-  ctx.closePath();
-}
+// Oberver, redraw all strokes
+canvas.addEventListener("drawing-changed", () => {
+  //clear the canvas
+  ctx.clearRect(0, 0, canvas.width, canvas.height);
+  // draw each stroke
+  for (const stroke of strokes) {
+    if (stroke.length < 2) continue;
+    const firstPoint = stroke[0]; // safe
+    ctx.beginPath();
+    ctx.moveTo(firstPoint!.x, firstPoint!.y);
+    for (let i = 1; i < stroke.length; i++) {
+      ctx.lineTo(stroke[i]!.x, stroke[i]!.y);
+    }
+    ctx.strokeStyle = "black";
+    ctx.lineWidth = 2;
+    ctx.lineCap = "round";
+    ctx.stroke();
+    ctx.closePath();
+  }
+});
 
-// when the mouse is down, begins drawing
+// mouse events
 canvas.addEventListener("mousedown", (event) => {
   isDrawing = true;
-  lastX = event.offsetX; //offset is the cordinates of the canvas
-  lastY = event.offsetY; // not the whole page or window
+  currentStroke = [{ x: event.offsetX, y: event.offsetY }];
+  strokes.push(currentStroke);
+  canvas.dispatchEvent(new Event("drawing-changed"));
 });
 
 // if the mouse is moving, draw it
 canvas.addEventListener("mousemove", (event) => {
   if (!isDrawing) return;
-  const x = event.offsetX;
-  const y = event.offsetY;
-  drawLine(lastX, lastY, x, y); //x , y are the current points
-
-  // updates the current points to be the previoius points
-  lastX = x;
-  lastY = y;
+  const point = { x: event.offsetX, y: event.offsetY };
+  currentStroke.push(point);
+  canvas.dispatchEvent(new Event("drawing-changed"));
 });
 
 //when the mouse is lifted, dont draw
@@ -66,5 +75,6 @@ globalThis.addEventListener("mouseup", () => {
 
 //clear button
 clearBtn.addEventListener("click", () => {
-  ctx.clearRect(0, 0, canvas.width, canvas.height);
+  strokes.length = 0;
+  canvas.dispatchEvent(new Event("drawing-changed"));
 });
