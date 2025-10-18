@@ -5,7 +5,11 @@
   border-width: 5px;
 }
 
-.title {}
+.title {
+  font-family: system-ui, default;
+  text-align: center;
+  color: #333;
+}
 
 canvas {
   width: 256px;
