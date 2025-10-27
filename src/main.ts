@@ -9,6 +9,8 @@ document.body.innerHTML = `
  <button id = "clearBtn"> Clear </button>
  <button id = "redoBtn"> Redo </button>
  <button id = "undoBtn"> Undo </button>
+ <button id="thinBtn">Thin Marker</button>
+ <button id="thickBtn">Thick Marker</button>
 `;
 
 const canvas = document.getElementById("myCanvas") as HTMLCanvasElement;
@@ -18,7 +20,7 @@ const clearBtn = document.getElementById("clearBtn") as HTMLButtonElement;
 const redoBtn = document.getElementById("redoBtn") as HTMLButtonElement;
 const undoBtn = document.getElementById("undoBtn") as HTMLElement;
 type Point = { x: number; y: number }; //list of points
-
+let currentThickness = 2;
 //any 0object that has .display(ctx) is a DisplayCommand
 interface DisplayCommand {
   display(ctx: CanvasRenderingContext2D): void;
@@ -26,9 +28,11 @@ interface DisplayCommand {
 
 class MarkerLine implements DisplayCommand {
   points: Point[] = [];
+  thickness: number;
 
-  constructor(startX: number, startY: number) {
+  constructor(startX: number, startY: number, thickness: number) {
     this.points.push({ x: startX, y: startY });
+    this.thickness = thickness;
   }
 
   drag(x: number, y: number) {
@@ -43,7 +47,7 @@ class MarkerLine implements DisplayCommand {
       ctx.lineTo(this.points[i]!.x, this.points[i]!.y);
     }
     ctx.strokeStyle = "black";
-    ctx.lineWidth = 2;
+    ctx.lineWidth = this.thickness;
     ctx.lineCap = "round";
     ctx.stroke();
     ctx.closePath();
@@ -53,6 +57,20 @@ class MarkerLine implements DisplayCommand {
 const strokes: DisplayCommand[] = [];
 let currentStroke: MarkerLine | null = null;
 const redoStack: DisplayCommand[] = [];
+const thinBtn = document.getElementById("thinBtn") as HTMLButtonElement;
+const thickBtn = document.getElementById("thickBtn") as HTMLButtonElement;
+
+thinBtn.addEventListener("click", () => {
+  currentThickness = 2;
+  thinBtn.classList.add("selectedTool");
+  thickBtn.classList.remove("selectedTool");
+});
+
+thickBtn.addEventListener("click", () => {
+  currentThickness = 6;
+  thickBtn.classList.add("selectedTool");
+  thinBtn.classList.remove("selectedTool");
+});
 
 // Oberver, redraw all strokes
 canvas.addEventListener("drawing-changed", () => {
@@ -69,7 +87,7 @@ canvas.addEventListener("drawing-changed", () => {
 canvas.addEventListener("mousedown", (event) => {
   const x = event.offsetX;
   const y = event.offsetY;
-  currentStroke = new MarkerLine(x, y);
+  currentStroke = new MarkerLine(x, y, currentThickness);
   strokes.push(currentStroke);
 });
 
