@@ -18,25 +18,29 @@ const clearBtn = document.getElementById("clearBtn") as HTMLButtonElement;
 const redoBtn = document.getElementById("redoBtn") as HTMLButtonElement;
 const undoBtn = document.getElementById("undoBtn") as HTMLElement;
 type Point = { x: number; y: number }; //list of points
-type Stroke = Point[]; // one continous line
-const strokes: Stroke[] = []; //array of strokes, holds all finished strokes
-let currentStroke: Stroke = []; // stores points of the current stroke being drawn
-const redoStack: Stroke[] = [];
 
-let isDrawing = false;
+//any 0object that has .display(ctx) is a DisplayCommand
+interface DisplayCommand {
+  display(ctx: CanvasRenderingContext2D): void;
+}
 
-// Oberver, redraw all strokes
-canvas.addEventListener("drawing-changed", () => {
-  //clear the canvas
-  ctx.clearRect(0, 0, canvas.width, canvas.height);
-  // draw each stroke
-  for (const stroke of strokes) {
-    if (stroke.length < 2) continue;
-    const firstPoint = stroke[0]; // safe
+class MarkerLine implements DisplayCommand {
+  points: Point[] = [];
+
+  constructor(startX: number, startY: number) {
+    this.points.push({ x: startX, y: startY });
+  }
+
+  drag(x: number, y: number) {
+    this.points.push({ x, y });
+  }
+
+  display(ctx: CanvasRenderingContext2D) {
+    if (this.points.length < 2) return;
     ctx.beginPath();
-    ctx.moveTo(firstPoint!.x, firstPoint!.y);
-    for (let i = 1; i < stroke.length; i++) {
-      ctx.lineTo(stroke[i]!.x, stroke[i]!.y);
+    ctx.moveTo(this.points[0]!.x, this.points[0]!.y);
+    for (let i = 1; i < this.points.length; i++) {
+      ctx.lineTo(this.points[i]!.x, this.points[i]!.y);
     }
     ctx.strokeStyle = "black";
     ctx.lineWidth = 2;
@@ -44,38 +48,54 @@ canvas.addEventListener("drawing-changed", () => {
     ctx.stroke();
     ctx.closePath();
   }
+}
+
+const strokes: DisplayCommand[] = [];
+let currentStroke: MarkerLine | null = null;
+const redoStack: DisplayCommand[] = [];
+
+// Oberver, redraw all strokes
+canvas.addEventListener("drawing-changed", () => {
+  //clear the canvas
+  ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+  // draw each stroke
+  for (const stroke of strokes) {
+    (stroke as MarkerLine).display(ctx);
+  }
 });
 
 // mouse events
 canvas.addEventListener("mousedown", (event) => {
-  isDrawing = true;
-  currentStroke = [{ x: event.offsetX, y: event.offsetY }];
+  const x = event.offsetX;
+  const y = event.offsetY;
+  currentStroke = new MarkerLine(x, y);
   strokes.push(currentStroke);
-  canvas.dispatchEvent(new Event("drawing-changed"));
 });
 
 // if the mouse is moving, draw it
 canvas.addEventListener("mousemove", (event) => {
-  if (!isDrawing) return;
-  const point = { x: event.offsetX, y: event.offsetY };
-  currentStroke.push(point);
+  if (!currentStroke) return;
+  const x = event.offsetX;
+  const y = event.offsetY;
+  currentStroke.drag(x, y);
   canvas.dispatchEvent(new Event("drawing-changed"));
 });
 
 //when the mouse is lifted, dont draw
 canvas.addEventListener("mouseup", () => {
-  isDrawing = false;
+  currentStroke = null;
   redoStack.length = 0;
 });
 
 // when the mouse is off screen dont draw
 canvas.addEventListener("mouseleave", () => {
-  isDrawing = false;
+  currentStroke = null;
 });
 
 // when the mouse is released outside of the canvas
 globalThis.addEventListener("mouseup", () => {
-  isDrawing = false;
+  currentStroke = null;
 });
 
 function undo() {
