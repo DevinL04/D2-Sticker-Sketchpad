@@ -21,6 +21,9 @@ const redoBtn = document.getElementById("redoBtn") as HTMLButtonElement;
 const undoBtn = document.getElementById("undoBtn") as HTMLElement;
 type Point = { x: number; y: number }; //list of points
 let currentThickness = 2;
+
+let toolPreview: ToolPreview | null = null;
+
 //any 0object that has .display(ctx) is a DisplayCommand
 interface DisplayCommand {
   display(ctx: CanvasRenderingContext2D): void;
@@ -64,12 +67,14 @@ thinBtn.addEventListener("click", () => {
   currentThickness = 2;
   thinBtn.classList.add("selectedTool");
   thickBtn.classList.remove("selectedTool");
+  toolPreview = null;
 });
 
 thickBtn.addEventListener("click", () => {
   currentThickness = 6;
   thickBtn.classList.add("selectedTool");
   thinBtn.classList.remove("selectedTool");
+  toolPreview = null;
 });
 
 // Oberver, redraw all strokes
@@ -85,6 +90,7 @@ canvas.addEventListener("drawing-changed", () => {
 
 // mouse events
 canvas.addEventListener("mousedown", (event) => {
+  toolPreview = null;
   const x = event.offsetX;
   const y = event.offsetY;
   currentStroke = new MarkerLine(x, y, currentThickness);
@@ -93,17 +99,40 @@ canvas.addEventListener("mousedown", (event) => {
 
 // if the mouse is moving, draw it
 canvas.addEventListener("mousemove", (event) => {
-  if (!currentStroke) return;
-  const x = event.offsetX;
-  const y = event.offsetY;
-  currentStroke.drag(x, y);
-  canvas.dispatchEvent(new Event("drawing-changed"));
+  const rect = canvas.getBoundingClientRect();
+  const x = event.clientX - rect.left;
+  const y = event.clientY - rect.top;
+
+  if (currentStroke) {
+    // Mouse is down — we're drawing
+    currentStroke.drag(x, y);
+  } else {
+    // Mouse is moving but not drawing — update tool preview
+    if (!toolPreview) {
+      toolPreview = new ToolPreview(x, y, currentThickness);
+    } else {
+      toolPreview.updatePosition(x, y);
+    }
+  }
+
+  render(); // re-draw everything
 });
+function render() {
+  ctx.clearRect(0, 0, canvas.width, canvas.height);
+  for (const cmd of strokes) {
+    cmd.display(ctx);
+  }
+
+  if (toolPreview) {
+    toolPreview.draw(ctx);
+  }
+}
 
 //when the mouse is lifted, dont draw
 canvas.addEventListener("mouseup", () => {
   currentStroke = null;
   redoStack.length = 0;
+  render();
 });
 
 // when the mouse is off screen dont draw
@@ -137,4 +166,34 @@ redoBtn.addEventListener("click", redo);
 clearBtn.addEventListener("click", () => {
   strokes.length = 0;
   canvas.dispatchEvent(new Event("drawing-changed"));
+  render();
 });
+
+class ToolPreview {
+  x: number;
+  y: number;
+  radius: number;
+
+  constructor(x: number, y: number, thickness: number) {
+    this.x = x;
+    this.y = y;
+    this.radius = thickness / 2; // circle radius based on tool thickness
+  }
+
+  updatePosition(x: number, y: number) {
+    this.x = x;
+    this.y = y;
+  }
+
+  draw(ctx: CanvasRenderingContext2D) {
+    ctx.save();
+    ctx.beginPath();
+    ctx.arc(this.x, this.y, this.radius, 0, Math.PI * 2);
+    ctx.fill;
+    ctx.strokeStyle = "black";
+    ctx.lineWidth = 1;
+    ctx.stroke();
+    ctx.closePath();
+    ctx.restore();
+  }
+}
