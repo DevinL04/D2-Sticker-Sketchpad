@@ -9,6 +9,7 @@
   font-family: system-ui, default;
   text-align: center;
   color: #333;
+  margin-bottom: 10px;
 }
 
 canvas {
@@ -18,4 +19,42 @@ canvas {
   border: 2px solid black;
   border-radius: 20px;
   display: block;
+  margin: 0 auto;
+  background: white;
+}
+
+button {
+  padding: 6px 12px;
+  margin: 4px;
+  border-radius: 8px;
+  border: none;
+  background: #e0e0e0;
+  cursor: pointer;
+  font-size: 14px;
+  transition: background 0.2s, transform 0.05s;
+}
+
+button:hover {
+  background: #d5d5d5;
+}
+
+button:active {
+  transform: scale(0.97);
+}
+
+.selectedTool {
+  background: #448aff !important;
+  color: white;
+}
+
+#buttonContainer,
+#stickerContainer {
+  text-align: center;
+  margin-top: 10px;
+}
+
+#stickerContainer button {
+  font-size: 24px;
+  padding: 6px 10px;
+  border-radius: 40px;
 }

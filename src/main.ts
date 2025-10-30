@@ -89,7 +89,7 @@ class StickerCommand implements DisplayCommand {
 
   display(ctx: CanvasRenderingContext2D) {
     ctx.save();
-    ctx.font = "24px Arial";
+    ctx.font = "32px Arial";
     ctx.fillText(this.sticker, this.x, this.y);
     ctx.restore();
   }
@@ -157,7 +157,7 @@ let currentStroke: DisplayCommand | null = null;
 const redoStack: DisplayCommand[] = [];
 
 // ----- Sticker Buttons -----
-const stickers = ["😊", "⭐", "❤️"];
+const stickers = ["😊", "⭐", "❤️", "❄️", "🌚", "🧃", "🍉", "❤️‍🔥", "❌"];
 function renderStickerButtons() {
   stickerContainer.innerHTML = "";
   stickers.forEach((emoji) => {
@@ -183,14 +183,14 @@ customStickerBtn.addEventListener("click", () => {
 
 // ----- Marker Thickness Buttons -----
 thinBtn.addEventListener("click", () => {
-  currentThickness = 2;
+  currentThickness = 4;
   currentTool = "marker";
   thinBtn.classList.add("selectedTool");
   thickBtn.classList.remove("selectedTool");
   toolPreview = null;
 });
 thickBtn.addEventListener("click", () => {
-  currentThickness = 6;
+  currentThickness = 12;
   currentTool = "marker";
   thickBtn.classList.add("selectedTool");
   thinBtn.classList.remove("selectedTool");
