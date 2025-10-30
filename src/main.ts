@@ -1,9 +1,8 @@
-import exampleIconUrl from "./noun-paperclip-7598668-00449F.png";
+//import exampleIconUrl from "./noun-paperclip-7598668-00449F.png";
 import "./style.css";
 
 document.body.innerHTML = `
 <h1 class="title">Welcome to Sketchpad</h1>
-<p>Example image asset: <img src="${exampleIconUrl}" class="icon" /></p>
 <canvas id="myCanvas" width="256" height="256"></canvas>
 <div id="buttonContainer">
   <button id="clearBtn">Clear</button>
@@ -12,6 +11,8 @@ document.body.innerHTML = `
   <button id="thinBtn">Thin Marker</button>
   <button id="thickBtn">Thick Marker</button>
   <button id="customStickerBtn">Custom Sticker</button>
+  <button id="exportBtn">Export PNG</button>
+
 </div>
 <div id="stickerContainer"></div>
 `;
@@ -268,3 +269,30 @@ function render() {
   for (const cmd of strokes) cmd.display(ctx);
   if (toolPreview) toolPreview.draw(ctx);
 }
+
+// ----- High Resolution Export -----
+const exportBtn = document.getElementById("exportBtn") as HTMLButtonElement;
+
+exportBtn.addEventListener("click", () => {
+  // Create a new high-resolution canvas
+  const exportCanvas = document.createElement("canvas");
+  exportCanvas.width = 1024;
+  exportCanvas.height = 1024;
+  const exportCtx = exportCanvas.getContext("2d")!;
+
+  // Scale drawing from 256 → 1024 (4x)
+  const scaleX = exportCanvas.width / canvas.width;
+  const scaleY = exportCanvas.height / canvas.height;
+  exportCtx.scale(scaleX, scaleY);
+
+  // Draw all finalized commands (NOT preview shapes)
+  for (const cmd of strokes) {
+    cmd.display(exportCtx);
+  }
+
+  // Download PNG
+  const a = document.createElement("a");
+  a.href = exportCanvas.toDataURL("image/png");
+  a.download = "sketchpad.png";
+  a.click();
+});
