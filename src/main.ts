@@ -1,19 +1,33 @@
-//import exampleIconUrl from "./noun-paperclip-7598668-00449F.png";
 import "./style.css";
 
 document.body.innerHTML = `
 <h1 class="title">Welcome to Sketchpad</h1>
 <canvas id="myCanvas" width="256" height="256"></canvas>
+
 <div id="buttonContainer">
-  <button id="clearBtn">Clear</button>
-  <button id="redoBtn">Redo</button>
-  <button id="undoBtn">Undo</button>
-  <button id="thinBtn">Thin Marker</button>
-  <button id="thickBtn">Thick Marker</button>
+  <div id="actionButtons">
+    <button id="clearBtn">Clear</button>
+    <button id="redoBtn">Redo</button>
+    <button id="undoBtn">Undo</button>
+  </div>
+
+  <div id="thicknessButtons">
+    <button id="thinBtn">Thin Marker</button>
+    <button id="thickBtn">Thick Marker</button>
+  </div>
+
+  <div id="colorButtons">
+    <button class="color-choice" data-color="#000000" style="background:#000000;"></button>
+    <button class="color-choice" data-color="#ff0000" style="background:#ff0000;"></button>
+    <button class="color-choice" data-color="#007bff" style="background:#007bff;"></button>
+    <button class="color-choice" data-color="#28a745" style="background:#28a745;"></button>
+    <button class="color-choice" id="randomColorBtn" style="background:linear-gradient(45deg, red, yellow, green, blue, purple);"></button>
+  </div>
+
   <button id="customStickerBtn">Custom Sticker</button>
   <button id="exportBtn">Export PNG</button>
-
 </div>
+
 <div id="stickerContainer"></div>
 `;
 
@@ -21,19 +35,24 @@ const canvas = document.getElementById("myCanvas") as HTMLCanvasElement;
 const ctx = canvas.getContext("2d")!;
 const clearBtn = document.getElementById("clearBtn") as HTMLButtonElement;
 const redoBtn = document.getElementById("redoBtn") as HTMLButtonElement;
-const undoBtn = document.getElementById("undoBtn") as HTMLElement;
+const undoBtn = document.getElementById("undoBtn") as HTMLButtonElement;
 const thinBtn = document.getElementById("thinBtn") as HTMLButtonElement;
 const thickBtn = document.getElementById("thickBtn") as HTMLButtonElement;
 const customStickerBtn = document.getElementById(
   "customStickerBtn",
 ) as HTMLButtonElement;
+const exportBtn = document.getElementById("exportBtn") as HTMLButtonElement;
 const stickerContainer = document.getElementById("stickerContainer")!;
+const colorButtons = document.querySelectorAll<HTMLButtonElement>(
+  ".color-choice",
+);
 
 type Point = { x: number; y: number };
 
-let currentThickness = 2;
+let currentThickness = 4;
 let currentTool: "marker" | "sticker" = "marker";
 let currentSticker: string | null = null;
+let currentColor: string = "#000000";
 let toolPreview: ToolPreview | StickerPreview | null = null;
 
 interface DisplayCommand {
@@ -45,10 +64,12 @@ interface DisplayCommand {
 class MarkerLine implements DisplayCommand {
   points: Point[] = [];
   thickness: number;
+  color: string;
 
-  constructor(x: number, y: number, thickness: number) {
+  constructor(x: number, y: number, thickness: number, color: string) {
     this.points.push({ x, y });
     this.thickness = thickness;
+    this.color = color;
   }
 
   drag(x: number, y: number) {
@@ -62,7 +83,7 @@ class MarkerLine implements DisplayCommand {
     for (let i = 1; i < this.points.length; i++) {
       ctx.lineTo(this.points[i]!.x, this.points[i]!.y);
     }
-    ctx.strokeStyle = "black";
+    ctx.strokeStyle = this.color;
     ctx.lineWidth = this.thickness;
     ctx.lineCap = "round";
     ctx.stroke();
@@ -100,11 +121,13 @@ class ToolPreview {
   x: number;
   y: number;
   radius: number;
+  color: string;
 
-  constructor(x: number, y: number, thickness: number) {
+  constructor(x: number, y: number, thickness: number, color: string) {
     this.x = x;
     this.y = y;
     this.radius = thickness / 2;
+    this.color = color;
   }
 
   updatePosition(x: number, y: number) {
@@ -116,7 +139,7 @@ class ToolPreview {
     ctx.save();
     ctx.beginPath();
     ctx.arc(this.x, this.y, this.radius, 0, Math.PI * 2);
-    ctx.fillStyle = "rgba(0,0,0,0.2)";
+    ctx.fillStyle = this.color + "33"; // semi-transparent
     ctx.fill();
     ctx.strokeStyle = "black";
     ctx.lineWidth = 1;
@@ -145,7 +168,7 @@ class StickerPreview {
   draw(ctx: CanvasRenderingContext2D) {
     ctx.save();
     ctx.globalAlpha = 0.5;
-    ctx.font = "24px Arial";
+    ctx.font = "32px Arial";
     ctx.fillText(this.sticker, this.x, this.y);
     ctx.restore();
   }
@@ -197,13 +220,29 @@ thickBtn.addEventListener("click", () => {
   toolPreview = null;
 });
 
+// ----- Color Buttons -----
+colorButtons.forEach((btn) => {
+  btn.addEventListener("click", () => {
+    if (btn.id === "randomColorBtn") {
+      // Generate random HSL color
+      const hue = Math.floor(Math.random() * 360);
+      currentColor = `hsl(${hue}, 80%, 50%)`;
+    } else {
+      currentColor = btn.dataset.color!;
+    }
+    colorButtons.forEach((b) => b.classList.remove("selected"));
+    btn.classList.add("selected");
+    toolPreview = null;
+  });
+});
+
 // ----- Mouse Events -----
 canvas.addEventListener("mousedown", (event) => {
   const x = event.offsetX;
   const y = event.offsetY;
 
   if (currentTool === "marker") {
-    currentStroke = new MarkerLine(x, y, currentThickness);
+    currentStroke = new MarkerLine(x, y, currentThickness, currentColor);
   } else if (currentTool === "sticker" && currentSticker) {
     currentStroke = new StickerCommand(x, y, currentSticker);
   }
@@ -220,13 +259,12 @@ canvas.addEventListener("mousemove", (event) => {
   if (currentStroke && currentTool === "marker") {
     currentStroke.drag!(x, y);
   } else if (!currentStroke && currentTool === "marker") {
-    if (!toolPreview) toolPreview = new ToolPreview(x, y, currentThickness);
-    else toolPreview.updatePosition(x, y);
+    toolPreview = new ToolPreview(x, y, currentThickness, currentColor);
   } else if (!currentStroke && currentTool === "sticker" && currentSticker) {
-    if (!toolPreview) toolPreview = new StickerPreview(x, y, currentSticker);
-    else toolPreview.updatePosition(x, y);
+    toolPreview = new StickerPreview(x, y, currentSticker);
   }
 
+  if (toolPreview) toolPreview.updatePosition(x, y);
   render();
 });
 
@@ -271,26 +309,19 @@ function render() {
 }
 
 // ----- High Resolution Export -----
-const exportBtn = document.getElementById("exportBtn") as HTMLButtonElement;
-
 exportBtn.addEventListener("click", () => {
-  // Create a new high-resolution canvas
   const exportCanvas = document.createElement("canvas");
   exportCanvas.width = 1024;
   exportCanvas.height = 1024;
   const exportCtx = exportCanvas.getContext("2d")!;
-
-  // Scale drawing from 256 → 1024 (4x)
   const scaleX = exportCanvas.width / canvas.width;
   const scaleY = exportCanvas.height / canvas.height;
   exportCtx.scale(scaleX, scaleY);
 
-  // Draw all finalized commands (NOT preview shapes)
   for (const cmd of strokes) {
     cmd.display(exportCtx);
   }
 
-  // Download PNG
   const a = document.createElement("a");
   a.href = exportCanvas.toDataURL("image/png");
   a.download = "sketchpad.png";

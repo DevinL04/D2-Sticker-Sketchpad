@@ -1,10 +1,3 @@
-.icon {
-  width: 24px;
-  vertical-align: top;
-  border: 1px solid rgb(0, 0, 0);
-  border-width: 5px;
-}
-
 .title {
   font-family: system-ui, default;
   text-align: center;
@@ -47,9 +40,29 @@ button:active {
   color: white;
 }
 
-#buttonContainer,
-#stickerContainer {
+#buttonContainer {
   text-align: center;
+  margin-top: 10px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+}
+
+#actionButtons,
+#thicknessButtons,
+#colorButtons {
+  display: flex;
+  gap: 8px;
+  justify-content: center;
+  align-items: center;
+}
+
+#stickerContainer {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  gap: 8px;
   margin-top: 10px;
 }
 
@@ -57,4 +70,17 @@ button:active {
   font-size: 24px;
   padding: 6px 10px;
   border-radius: 40px;
+}
+
+.color-choice {
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  border: 2px solid transparent;
+  cursor: pointer;
+}
+
+.color-choice.selected {
+  border: 2px solid white;
+  box-shadow: 0 0 4px white;
 }
